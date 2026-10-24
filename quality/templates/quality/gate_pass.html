@@ -1,0 +1,27 @@
+{% extends "quality/base.html" %}
+{% block title %}Gate pass GP-{{ gate_pass.pk|stringformat:"05d" }} - Factory QC{% endblock %}
+{% block content %}
+<div class="card shadow-sm mx-auto" style="max-width: 560px;">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <h1 class="h4 mb-0">Gate pass</h1>
+      <span class="fs-5 fw-bold">GP-{{ gate_pass.pk|stringformat:"05d" }}</span>
+    </div>
+    <table class="table table-sm mb-3">
+      <tr><th class="w-50">Job</th><td>{{ gate_pass.job.job_number }}</td></tr>
+      <tr><th>Product</th><td>{{ gate_pass.job.product }}</td></tr>
+      <tr><th>Quantity</th><td>{{ gate_pass.job.quantity }}</td></tr>
+      <tr><th>Cleared by inspection</th><td>#{{ gate_pass.inspection.pk }} ({{ gate_pass.inspection.get_status_display }})</td></tr>
+      <tr><th>Created by</th><td>{{ gate_pass.created_by.get_username }}</td></tr>
+      <tr><th>Created at</th><td>{{ gate_pass.created_at|date:"d M Y, H:i" }}</td></tr>
+    </table>
+    {% if gate_pass.inspection.status == "concession" %}
+      <div class="alert alert-warning small mb-3">
+        Released by concession: {{ gate_pass.inspection.get_concession_code_display }}.
+      </div>
+    {% endif %}
+    <a class="btn btn-secondary" href="{% url 'shipping_list' %}">Back to shipping</a>
+    <button class="btn btn-outline-primary" onclick="window.print()">Print</button>
+  </div>
+</div>
+{% endblock %}

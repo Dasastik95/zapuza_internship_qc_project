@@ -1,0 +1,44 @@
+{% extends "quality/base.html" %}
+{% block title %}Home - Factory QC{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Hello, {{ user.get_username }}</h1>
+<p class="text-muted">Nothing ships until it has been measured, checked and approved.</p>
+
+{% if not is_inspector and not is_supervisor and not is_clerk %}
+  <div class="alert alert-warning">
+    Your account has no role yet. Ask an admin to add you to the Inspector, Supervisor or Warehouse Clerk group.
+  </div>
+{% endif %}
+
+<div class="row g-3">
+  {% if is_inspector %}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h2 class="h5">Inspector</h2>
+      <p class="text-muted">Start an inspection, enter measurements, upload photos of defects.</p>
+      {% if open_inspections %}<p class="small">You have <strong>{{ open_inspections }}</strong> inspection(s) in progress.</p>{% endif %}
+      <a class="btn btn-primary big-btn" href="{% url 'job_list' %}">Open jobs</a>
+    </div></div>
+  </div>
+  {% endif %}
+  {% if is_supervisor %}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h2 class="h5">Supervisor</h2>
+      <p class="text-muted">Approve, release by concession, or quarantine submitted inspections.</p>
+      <p class="small"><strong>{{ pending_reviews }}</strong> waiting for review.</p>
+      <a class="btn btn-primary big-btn" href="{% url 'review_queue' %}">Review queue</a>
+    </div></div>
+  </div>
+  {% endif %}
+  {% if is_clerk %}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm"><div class="card-body">
+      <h2 class="h5">Warehouse clerk</h2>
+      <p class="text-muted">Create gate passes. A job that is not approved cannot ship.</p>
+      <a class="btn btn-primary big-btn" href="{% url 'shipping_list' %}">Shipping</a>
+    </div></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "quality/base.html" %}
+{% block title %}Shipping - Factory QC{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Shipping</h1>
+<p class="text-muted">A gate pass can only be created for a job whose inspection is approved. If it is blocked, the exact reason is shown.</p>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Job</th><th>Product</th><th>Latest inspection</th><th>Shipping status</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="fw-semibold">{{ row.job.job_number }}</td>
+          <td>{{ row.job.product.part_number }}</td>
+          <td>
+            {% if row.latest %}{% include "quality/_status_badge.html" with status=row.latest.status label=row.latest.get_status_display %}
+            {% else %}<span class="text-muted">None</span>{% endif %}
+          </td>
+          <td>
+            {% if row.gate_pass %}<span class="text-success">Shipped (gate pass issued)</span>
+            {% elif row.reason %}<span class="text-danger small">{{ row.reason }}</span>
+            {% else %}<span class="text-success">Clear to ship</span>{% endif %}
+          </td>
+          <td class="text-end">
+            {% if row.gate_pass %}
+              <a class="btn btn-outline-secondary text-nowrap" href="{% url 'gate_pass_detail' row.gate_pass.pk %}">View gate pass</a>
+            {% else %}
+              <form method="post" action="{% url 'create_gate_pass' row.job.pk %}" class="m-0">
+                {% csrf_token %}
+                <button class="btn text-nowrap btn-{% if row.reason %}outline-danger{% else %}success{% endif %}">Create gate pass</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No jobs yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

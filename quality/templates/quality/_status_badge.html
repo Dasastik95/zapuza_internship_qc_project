@@ -1,0 +1,5 @@
+{% if status == "approved" %}<span class="badge text-bg-success">{{ label }}</span>
+{% elif status == "concession" %}<span class="badge text-bg-warning">{{ label }}</span>
+{% elif status == "quarantined" %}<span class="badge text-bg-danger">{{ label }}</span>
+{% elif status == "pending_review" %}<span class="badge text-bg-primary">{{ label }}</span>
+{% else %}<span class="badge text-bg-secondary">{{ label }}</span>{% endif %}

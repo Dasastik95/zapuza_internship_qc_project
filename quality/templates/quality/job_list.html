@@ -1,0 +1,46 @@
+{% extends "quality/base.html" %}
+{% block title %}Jobs - Factory QC{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Production jobs</h1>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Job</th><th>Product</th><th>Machine</th><th>Qty</th><th>Inspection</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="fw-semibold">{{ row.job.job_number }}</td>
+          <td>{{ row.job.product }}</td>
+          <td>{{ row.job.machine|default:"-" }}</td>
+          <td>{{ row.job.quantity }}</td>
+          <td>
+            {% if row.latest %}
+              {% include "quality/_status_badge.html" with status=row.latest.status label=row.latest.get_status_display %}
+            {% else %}<span class="text-muted">Not inspected</span>{% endif %}
+          </td>
+          <td class="text-end">
+            {% if row.open and row.open.status == "in_progress" and row.open.inspector == user %}
+              <a class="btn btn-warning" href="{% url 'inspection_detail' row.open.pk %}">Continue</a>
+            {% elif row.open %}
+              <span class="text-muted small">Open inspection</span>
+            {% elif row.quarantined %}
+              <span class="text-danger small">Quarantined</span>
+            {% else %}
+              <form method="post" action="{% url 'start_inspection' row.job.pk %}" class="m-0">
+                {% csrf_token %}
+                <button class="btn btn-primary">{% if row.latest %}Inspect again{% else %}Start inspection{% endif %}</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No jobs yet. An admin can add them in the Admin site.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

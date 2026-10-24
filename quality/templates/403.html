@@ -1,0 +1,9 @@
+{% extends "quality/base.html" %}
+{% block title %}Not allowed - Factory QC{% endblock %}
+{% block content %}
+<div class="alert alert-danger">
+  <h1 class="h4">You are not allowed to open this page</h1>
+  <p class="mb-0">{{ exception|default:"Your role does not have access." }}</p>
+</div>
+<a class="btn btn-secondary" href="{% url 'home' %}">Back to home</a>
+{% endblock %}

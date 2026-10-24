@@ -1,0 +1,48 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Factory QC{% endblock %}</title>
+  <link href="{% static 'quality/vendor/bootstrap.min.css' %}" rel="stylesheet">
+  <style>
+    body { background: #f4f6f8; }
+    .badge-ctq { background: #f97316; color: #fff; }
+    .photo-thumb { height: 64px; border-radius: 6px; border: 1px solid #ccc; }
+    .big-btn { padding: .7rem 1.4rem; font-size: 1.05rem; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'home' %}">Factory QC</a>
+    {% if user.is_authenticated %}
+    <div class="d-flex flex-wrap align-items-center gap-3 ms-auto">
+      {% if is_inspector %}<a class="nav-link text-light p-0" href="{% url 'job_list' %}">Jobs</a>{% endif %}
+      {% if is_supervisor %}<a class="nav-link text-light p-0" href="{% url 'review_queue' %}">Review queue</a>{% endif %}
+      {% if is_clerk %}<a class="nav-link text-light p-0" href="{% url 'shipping_list' %}">Shipping</a>{% endif %}
+      {% if user.is_staff %}<a class="nav-link text-light p-0" href="{% url 'admin:index' %}">Admin</a>{% endif %}
+      <span class="text-secondary small">{{ user.get_username }}</span>
+      <form method="post" action="{% url 'logout' %}" class="m-0">
+        {% csrf_token %}
+        <button class="btn btn-outline-light btn-sm">Log out</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="container pb-5">
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+
+<script src="{% static 'quality/vendor/bootstrap.bundle.min.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

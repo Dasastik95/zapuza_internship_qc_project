@@ -1,0 +1,91 @@
+{% extends "quality/base.html" %}
+{% load static %}
+{% block title %}Inspection - Factory QC{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h3 mb-1">Inspection #{{ inspection.pk }} &middot; {{ inspection.job.job_number }}</h1>
+    <div class="text-muted">{{ inspection.job.product }} &middot; {{ inspection.job.quantity }} pcs</div>
+  </div>
+  <div>{% include "quality/_status_badge.html" with status=inspection.status label=inspection.get_status_display %}</div>
+</div>
+
+{% if frozen %}
+  <div class="alert alert-danger">
+    <strong>Checklist frozen.</strong> A CTQ value was out of limits, so no more entries are allowed.
+    The inspection has gone to the supervisor, who can only quarantine it.
+  </div>
+{% elif not editable %}
+  <div class="alert alert-info">This inspection is locked because it was submitted.</div>
+{% endif %}
+
+{% for row in rows %}
+  {% with f=row.field m=row.measurement %}
+  {% if m %}
+    <div class="card shadow-sm mb-3 border-{% if m.passed %}success{% else %}danger{% endif %} border-2">
+      <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+          <div class="fw-semibold">{{ f.label }} {% if f.is_ctq %}<span class="badge badge-ctq">CTQ</span>{% endif %}</div>
+          <div class="small text-muted">Limits {{ f.lower_limit }} to {{ f.upper_limit }} {{ f.unit }} &middot; gauge {{ m.gauge.gauge_id }}</div>
+          {% for photo in m.photos.all %}<a href="{{ photo.image.url }}" target="_blank"><img class="photo-thumb me-1 mt-2" src="{{ photo.image.url }}" alt="Defect photo"></a>{% endfor %}
+        </div>
+        <div class="fs-4 fw-bold text-{% if m.passed %}success{% else %}danger{% endif %}">
+          {{ m.value }} {{ f.unit }}
+          <span class="badge text-bg-{% if m.passed %}success{% else %}danger{% endif %} align-middle fs-6">{% if m.passed %}PASS{% else %}FAIL{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  {% elif editable %}
+    <form method="post" action="{% url 'add_measurement' inspection.pk %}" enctype="multipart/form-data"
+          class="measure-form card shadow-sm mb-3" data-lower="{{ f.lower_limit }}" data-upper="{{ f.upper_limit }}">
+      {% csrf_token %}
+      <input type="hidden" name="field_id" value="{{ f.id }}">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between mb-2">
+          <div class="fw-semibold">{{ f.label }} {% if f.is_ctq %}<span class="badge badge-ctq">CTQ</span>{% endif %}</div>
+          <div class="small text-muted">Target {{ f.nominal }} {{ f.unit }} &middot; allowed {{ f.lower_limit }} to {{ f.upper_limit }}</div>
+        </div>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small mb-1">Measured value ({{ f.unit }})</label>
+            <input class="form-control form-control-lg value-input" name="value" type="number" step="any" inputmode="decimal" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small mb-1">Gauge used</label>
+            <select class="form-select form-select-lg" name="gauge" required>
+              <option value="">Choose gauge</option>
+              {% for g in gauges %}<option value="{{ g.pk }}">{{ g.gauge_id }} - {{ g.name }}{% if g.is_expired %} (EXPIRED){% endif %}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small mb-1">Defect photos <span class="text-muted">(2 needed if red)</span></label>
+            <input class="form-control form-control-sm mb-1" type="file" name="photo1" accept="image/*">
+            <input class="form-control form-control-sm" type="file" name="photo2" accept="image/*">
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-primary big-btn">Save</button>
+          </div>
+        </div>
+        <div class="out-msg text-danger small mt-2 d-none">Out of limits (red). Upload at least 2 photos before saving.</div>
+      </div>
+    </form>
+  {% else %}
+    <div class="card mb-3 border-secondary-subtle"><div class="card-body text-muted">
+      {{ f.label }}: not measured
+    </div></div>
+  {% endif %}
+  {% endwith %}
+{% endfor %}
+
+{% if editable %}
+  <form method="post" action="{% url 'submit_inspection' inspection.pk %}" class="mt-4">
+    {% csrf_token %}
+    <button class="btn btn-success big-btn">Submit for review</button>
+    <span class="text-muted small ms-2">Every field must be measured first.</span>
+  </form>
+{% else %}
+  <a class="btn btn-secondary mt-3" href="{% url 'job_list' %}">Back to jobs</a>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'quality/measure.js' %}"></script>{% endblock %}

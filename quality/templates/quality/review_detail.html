@@ -1,0 +1,100 @@
+{% extends "quality/base.html" %}
+{% block title %}Review #{{ inspection.pk }} - Factory QC{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h3 mb-1">Review inspection #{{ inspection.pk }} &middot; {{ inspection.job.job_number }}</h1>
+    <div class="text-muted">
+      {{ inspection.job.product }} &middot; inspected by {{ inspection.inspector.get_username }}
+      {% if inspection.submitted_at %}on {{ inspection.submitted_at|date:"d M Y, H:i" }}{% endif %}
+    </div>
+  </div>
+  <div>{% include "quality/_status_badge.html" with status=inspection.status label=inspection.get_status_display %}</div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Field</th><th>Allowed</th><th>Measured</th><th>Gauge</th><th>Result</th><th>Photos</th></tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        {% with f=row.field m=row.measurement %}
+        <tr class="{% if m and not m.passed %}table-danger{% endif %}">
+          <td>{{ f.label }} {% if f.is_ctq %}<span class="badge badge-ctq">CTQ</span>{% endif %}</td>
+          <td>{{ f.lower_limit }} to {{ f.upper_limit }} {{ f.unit }}</td>
+          {% if m %}
+            <td class="fw-semibold">{{ m.value }}</td>
+            <td>{{ m.gauge.gauge_id }}</td>
+            <td>{% if m.passed %}<span class="badge text-bg-success">PASS</span>{% else %}<span class="badge text-bg-danger">FAIL</span>{% endif %}</td>
+            <td>{% for p in m.photos.all %}<a href="{{ p.image.url }}" target="_blank"><img class="photo-thumb me-1" src="{{ p.image.url }}" alt="Defect photo"></a>{% endfor %}</td>
+          {% else %}
+            <td colspan="4" class="text-muted">Not measured (checklist was frozen)</td>
+          {% endif %}
+        </tr>
+        {% endwith %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if can_decide %}
+  {% if has_ctq_failure %}
+    <div class="alert alert-danger"><strong>A CTQ value failed.</strong> A concession is not allowed. Quarantine is the only option.</div>
+  {% elif has_failure %}
+    <div class="alert alert-warning">Some values are out of limits. You can release by concession (with a reason) or quarantine.</div>
+  {% else %}
+    <div class="alert alert-success">Every value is within limits.</div>
+  {% endif %}
+
+  <form method="post" class="card shadow-sm">
+    {% csrf_token %}
+    <div class="card-body">
+      <h2 class="h5 mb-3">Your decision</h2>
+
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="decision" id="d-approve" value="approve"
+               {% if has_failure %}disabled{% endif %} {% if form.decision.value == "approve" %}checked{% endif %}>
+        <label class="form-check-label" for="d-approve">Approve <span class="text-muted small">- all values passed</span></label>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="radio" name="decision" id="d-concession" value="concession"
+               {% if has_ctq_failure or not has_failure %}disabled{% endif %} {% if form.decision.value == "concession" %}checked{% endif %}>
+        <label class="form-check-label" for="d-concession">Release by concession <span class="text-muted small">- only non-CTQ misses, needs a reason code and justification</span></label>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="radio" name="decision" id="d-quarantine" value="quarantine"
+               {% if form.decision.value == "quarantine" %}checked{% endif %}>
+        <label class="form-check-label" for="d-quarantine">Quarantine <span class="text-muted small">- locks the lot, it cannot ship</span></label>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="id_concession_code">Concession reason code</label>
+        <select class="form-select" name="concession_code" id="id_concession_code">
+          {% for value, label in form.fields.concession_code.choices %}
+            <option value="{{ value }}" {% if form.concession_code.value == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="id_note">Justification / note</label>
+        <textarea class="form-control" name="note" id="id_note" rows="3">{{ form.note.value|default:"" }}</textarea>
+        <div class="form-text">Required for a concession or a quarantine. Every decision is saved with your name and the time.</div>
+      </div>
+      <button class="btn btn-primary big-btn">Save decision</button>
+      <a class="btn btn-link" href="{% url 'review_queue' %}">Cancel</a>
+    </div>
+  </form>
+{% else %}
+  <div class="card shadow-sm"><div class="card-body">
+    <h2 class="h5">Decision</h2>
+    <p class="mb-1">{{ inspection.get_status_display }} by {{ inspection.reviewed_by.get_username|default:"-" }}
+       {% if inspection.reviewed_at %}on {{ inspection.reviewed_at|date:"d M Y, H:i" }}{% endif %}</p>
+    {% if inspection.concession_code %}<p class="mb-1">Reason code: {{ inspection.get_concession_code_display }}</p>{% endif %}
+    {% if inspection.decision_note %}<p class="mb-0">Note: {{ inspection.decision_note }}</p>{% endif %}
+  </div></div>
+  <a class="btn btn-secondary mt-3" href="{% url 'review_queue' %}">Back to queue</a>
+{% endif %}
+{% endblock %}

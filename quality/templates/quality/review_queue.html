@@ -1,0 +1,49 @@
+{% extends "quality/base.html" %}
+{% block title %}Review queue - Factory QC{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Review queue</h1>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">Pending review ({{ pending|length }})</div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Inspection</th><th>Job</th><th>Product</th><th>Inspector</th><th>Submitted</th><th>Result</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for i in pending %}
+        <tr>
+          <td>#{{ i.pk }}</td>
+          <td class="fw-semibold">{{ i.job.job_number }}</td>
+          <td>{{ i.job.product.part_number }}</td>
+          <td>{{ i.inspector.get_username }}</td>
+          <td>{{ i.submitted_at|date:"d M, H:i" }}</td>
+          <td>
+            {% if i.has_ctq_failure %}<span class="badge text-bg-danger">CTQ FAILED</span>
+            {% elif i.has_failure %}<span class="badge text-bg-warning">Out of limits</span>
+            {% else %}<span class="badge text-bg-success">All passed</span>{% endif %}
+          </td>
+          <td class="text-end"><a class="btn btn-primary" href="{% url 'review_detail' i.pk %}">Review</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Nothing is waiting for review.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-white fw-semibold">Recently decided</div>
+  <ul class="list-group list-group-flush">
+    {% for i in decided %}
+      <li class="list-group-item d-flex justify-content-between">
+        <span>#{{ i.pk }} &middot; {{ i.job.job_number }} &middot; by {{ i.reviewed_by.get_username }}, {{ i.reviewed_at|date:"d M, H:i" }}</span>
+        {% include "quality/_status_badge.html" with status=i.status label=i.get_status_display %}
+      </li>
+    {% empty %}
+      <li class="list-group-item text-muted">No decisions yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
